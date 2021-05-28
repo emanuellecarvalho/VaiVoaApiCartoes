@@ -23,12 +23,12 @@ Assim, teremos dois endpoints, representados abaixo:
 Após a instalação das ferramentas citadas acima, criaremos o projeto utilizando o comando abaixo:
 
 ```
-dotnet new webapi -o vaivoa-api-cartoes
+dotnet new webapi -o VaiVoaApiCartoes
 ```
 Depois digite o comando abaixo para localizar o projeto criado:
 
 ```
-cd vaivoa-api-cartoes
+cd VaiVoaApiCartoes
 ```
 Será necessário adicionar o pacote do *Entity Framework Core In Memory* que é basicamente um provedor de banco de dados que possibilita que o Entity seja usado como um banco de dados em memória. Para isso, use o código conforme abaixo:
 
@@ -39,7 +39,7 @@ dotnet add package Microsoft.EntityFrameworkCore.InMemory
 Logo após, basta digitar o comando ```code .``` para abrir o projeto no Visual Studio Code:
 
 ```
-	code .
+code .
 ```
 Obs: vai aparecer uma mensagem perguntando se você deseja adicionar tudo o que é necessário para que o projeto funcione, neste caso você vai selecionar a opção “sim”.
 
@@ -57,7 +57,7 @@ Caso sim, então o projeto base para a API já está funcionando.
 
 ## **Criando uma classe de modelo**:
 
- Por convenção, para definir uma entidade, é utilizado uma pasta chamada *Models* e dentro dela, adicionamos a classe ```Cartao.cs``` com o código abaixo:
+ Por convenção, para definir uma entidade, é utilizado uma pasta chamada *Models* e dentro dela, adicionamos o arquivo *Cartao.cs* com o código abaixo:
 
 ```csharp
 using System;
@@ -109,7 +109,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 +using Microsoft.EntityFrameworkCore;
-+using Cartao.Models;
++using VaiVoaApiCartoes.Models;
 
 namespace VaiVoaApiCartoes
 {
@@ -124,10 +124,13 @@ namespace VaiVoaApiCartoes
 
         public void ConfigureServices(IServiceCollection services)
         {
-+            services.AddDbContext<TodoContext>(opt =>
-+                                              opt.UseInMemoryDatabase("Cartoes"));
++           services.AddDbContext<CartaoContext>(opt => 
++           opt.UseInMemoryDatabase("Cartoes"));
             services.AddControllers();
-        }
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "VaiVoaApiCartoes", Version = "v1" });
+        });
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
@@ -162,7 +165,7 @@ Após, para fazer o scaffold do controlador, execute o seguinte comando :
 ```csharp
 dotnet aspnet-codegenerator controller -name CartaoController -async -api -m Cartao -dc CartaoContext -outDir Controllers
 ```
-O comando executado acima gerou a classe CartaoController.cs dentro da pasta Controllers com os métodos de criar, ler, atualizar e deletar registros referentes ao Cartao. Esse atributo serve para indicar se o controlador responde às solicitações da API.
+O comando executado acima gerou a classe **CartaoController.cs** dentro da pasta Controllers com os métodos de criar, ler, atualizar e deletar registros referentes ao Cartao. Esse atributo serve para indicar se o controlador responde às solicitações da API.
 
 ```csharp
 using System;
@@ -283,7 +286,7 @@ Altere o valor destacado abaixo, para adequar a rota da API para */api/cartoes*:
 ```
 Feito isto, utilizaremos o padrão de projeto chamado DTOs (Objetos de Transferência de Dados), uma classe usada para otimizar a comunicação cliente-servidor em nossa API, trafegando apenas os dados necessários para cada operação: 
 
-Assim, criaremos um modelo de entrada (Input) para a requisição de criação de cartão: 
+Primeiro adicione uma nova pasta chamada *DTOs* e depois adicione um novo arquivo chamado *CriacaoCartaoInput.cs*, é nele onde criaremos um modelo de entrada (Input) para a requisição de criação de cartão: 
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -299,7 +302,7 @@ namespace VaiVoaApiCartoes.DTOs
     }
 }
 ```
-E depois um modelo de saída (Output) para a resposta da requisição mencionada anteriormente: 
+E depois um outro arquivo com nome *CriacaoCartaoOuput.cs* modelo de saída (Output) para a resposta da requisição mencionada anteriormente: 
 
 ```csharp
 using System.ComponentModel.DataAnnotations;
@@ -313,7 +316,7 @@ namespace VaiVoaApiCartoes.DTOs
     }
 }
 ```
-Agora, criaremos os métodos para converter a classe de modelo Cartao para os DTOs de entrada e saída. Para isso, atualizaremos o código destacado abaixo:
+Agora, criaremos os métodos para converter a classe de modelo no arquivo *CartaoController.cs* para os DTOs de entrada e saída. Para isso, atualizaremos o código destacado abaixo:
 
 ```diff
 using System;
@@ -323,7 +326,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using VaiVoaApiCartoes.DTOs;
++ using VaiVoaApiCartoes.DTOs;
 + using VaiVoaApiCartoes.Models;
 
 namespace VaiVoaApiCartoes.Controllers
@@ -400,8 +403,8 @@ namespace VaiVoaApiCartoes.Controllers
 
 +            cartao.NumeroCartao = GerarNumeroCartao();
 
-            _context.Cartoes.Add(cartao);
-            await _context.SaveChangesAsync();
++            _context.Cartoes.Add(cartao);
++            await _context.SaveChangesAsync();
 
 +            CriacaoCartaoOutput dtoOutput = ToDTO(cartao);
 
@@ -482,7 +485,7 @@ Ainda no mesmo arquivo, o *CartaoController.cs*, removeremos o código abaixo pa
 -            return await _context.Cartoes.ToListAsync();
 -        }
 ```
-E acrescentaremos o método em si com o seguinte código:
+E substituíremos o código acima, pelo método em si com o seguinte código:
 
 ```diff
 +		[HttpGet]
